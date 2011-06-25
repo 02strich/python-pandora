@@ -13,7 +13,7 @@ class KeyFile:
 		return self._key[key]
 	
 	def parse_file(self, fname):
-		f = open(os.path.join(os.getcwd(), fname ), 'r')
+		f = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), fname ), 'r')
 		lines = f.readlines()
 		f.close()
 		lines = self.cleanup(lines)

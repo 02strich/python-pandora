@@ -4,7 +4,7 @@ import time
 
 import crypt
 
-class AuthenticationError(Error):
+class AuthenticationError(Exception):
 	"""Raised when an operation encountered authentication issues."""
 	pass
 

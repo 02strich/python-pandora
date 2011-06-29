@@ -4,6 +4,10 @@ import time
 
 import crypt
 
+class AuthenticationError(Error):
+	"""Raised when an operation encountered authentication issues."""
+	pass
+
 class PandoraConnection(object):
 	rid = ""
 	lid = ""
@@ -30,9 +34,10 @@ class PandoraConnection(object):
 
 	def authListener(self, user, pwd):
 		reqUrl = self.BASE_URL_RID % (self.rid, "authenticateListener")
-		result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd)
 		
-		if not result:
+		try:
+			result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd)
+		except:
 			return False
 		
 		self.authInfo	= result
@@ -42,16 +47,11 @@ class PandoraConnection(object):
 	
 	def getStations(self):
 		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getStations")
-		result = self.doRequest(reqUrl, "station.getStations", self.authToken)
-		
-		if not result: return None
-		return result
+		return self.doRequest(reqUrl, "station.getStations", self.authToken)
 
 	def getFragment(self, stationId=None, format="mp3"):
 		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getFragment")
 		songlist = self.doRequest(reqUrl, "playlist.getFragment", self.authToken, stationId, "0", "", "", format, "0", "0")
-		
-		if not songlist: return None
 		
 		# last 48 chars of URL encrypted, padded w/ 8 * '\x08'
 		for i in range(len(songlist)):
@@ -78,7 +78,12 @@ class PandoraConnection(object):
 		except xmlrpclib.Fault, fault:
 			#print "Error:", fault.faultString
 			#print "Code:", fault.faultCode
-			return None
+			
+			code = fault.faultString.split("|")[-2]
+			if code == "AUTH_INVALID_TOKEN":
+				raise AuthenticationError()
+			else:
+				raise ValueError(code)
 		
 		return parsed[0][0]
 	

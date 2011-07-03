@@ -1,5 +1,6 @@
 import re
 import os
+import pkg_resources
 
 class KeyFile:
 	def __init__(self, fname):
@@ -13,7 +14,7 @@ class KeyFile:
 		return self._key[key]
 	
 	def parse_file(self, fname):
-		f = open(os.path.join(os.path.abspath(os.path.dirname(__file__)), fname ), 'r')
+		f = pkg_resources.resource_stream(__name__, fname)
 		lines = f.readlines()
 		f.close()
 		lines = self.cleanup(lines)

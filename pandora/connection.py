@@ -14,7 +14,7 @@ class PandoraConnection(object):
 	authInfo = {}
 	authToken = ""
 
-	PROTOCOL_VERSION = 30
+	PROTOCOL_VERSION = 31
 	BASE_URL = "http://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
 	BASE_URL_RID = BASE_URL + "rid=%sP&method=%s"
 	BASE_URL_LID = BASE_URL + "rid=%sP&lid=%s&method=%s"

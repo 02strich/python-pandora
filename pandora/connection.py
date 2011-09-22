@@ -14,7 +14,7 @@ class PandoraConnection(object):
 	authInfo = {}
 	authToken = ""
 
-	PROTOCOL_VERSION = 31
+	PROTOCOL_VERSION = 32
 	BASE_URL = "http://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
 	BASE_URL_RID = BASE_URL + "rid=%sP&method=%s"
 	BASE_URL_LID = BASE_URL + "rid=%sP&lid=%s&method=%s"
@@ -42,15 +42,14 @@ class PandoraConnection(object):
 		
 		self.authInfo	= result
 		self.authToken	= self.authInfo["authToken"]
-		self.lid	= self.authInfo["listenerId"]
 		return True
 	
 	def getStations(self):
-		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getStations")
+		reqUrl = self.BASE_URL_RID % (self.rid, "getStations")
 		return self.doRequest(reqUrl, "station.getStations", self.authToken)
 
 	def getFragment(self, stationId=None, format="mp3"):
-		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getFragment")
+		reqUrl = self.BASE_URL_RID % (self.rid, "getFragment")
 		songlist = self.doRequest(reqUrl, "playlist.getFragment", self.authToken, stationId, "0", "", "", format, "0", "0")
 		
 		# last 48 chars of URL encrypted, padded w/ 8 * '\x08'

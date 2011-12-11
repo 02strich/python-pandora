@@ -21,22 +21,35 @@ class PandoraConnection(object):
 
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
+		self.timedelta = 0
 		
 	def sync(self):
 		reqUrl = self.BASE_URL_RID % (self.rid, "sync")
 
 		req = xmlrpclib.dumps((), "misc.sync").replace("\n", "")
 		enc = crypt.encryptString(req)
-
+		
 		u = urllib2.urlopen(reqUrl, enc)
 		resp = u.read()
 		u.close()
+		
+		try:
+				parsed = xmlrpclib.loads(resp)
+				cryptedTimestamp = parsed[0][0]
+				decryptedTimestamp = crypt.decryptString(cryptedTimestamp)
+				self.timedelta = int(time.time()) - int(decryptedTimestamp[4:-2])
+		except xmlrpclib.Fault, fault:
+				raise ValueError(str(fault))
 
 	def authListener(self, user, pwd):
+		# sync to server time
+		self.sync()
+		
+		# now do real auth
 		reqUrl = self.BASE_URL_RID % (self.rid, "authenticateListener")
 		
 		try:
-			result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd)
+			result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd, "html5tuner", "", "", "HTML5", True)
 		except:
 			return False
 		
@@ -65,7 +78,7 @@ class PandoraConnection(object):
 		return songlist
 	
 	def doRequest(self, reqUrl, method, *args):
-		args = (int(time.time()), ) + args
+		args = (int(time.time()) - self.timedelta, ) + args
 		req = xmlrpclib.dumps(args, method).replace("\n", "")
 		enc = crypt.encryptString(req)
 		

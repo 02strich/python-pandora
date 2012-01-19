@@ -100,6 +100,8 @@ class PandoraConnection(object):
 				code = parts[-2]
 				if code == "AUTH_INVALID_TOKEN":
 					raise AuthenticationError()
+				else:
+					raise ValueError(code)
 			else:
 				raise ValueError(fault.faultString)
 		

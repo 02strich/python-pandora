@@ -15,16 +15,19 @@ class PandoraConnection(object):
 	authToken = ""
 
 	PROTOCOL_VERSION = 33
-	BASE_URL = "https://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
-	BASE_URL_RID = BASE_URL + "rid=%sP&method=%s"
-	BASE_URL_LID = BASE_URL + "rid=%sP&lid=%s&method=%s"
+	BASE_URL_SECURE = "https://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
+	BASE_URL_RID_SECURE = BASE_URL_SECURE + "rid=%sP&method=%s"
+	BASE_URL_LID_SECURE = BASE_URL_SECURE + "rid=%sP&lid=%s&method=%s"
+	
+	BASE_URL	 = "http://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
+	BASE_URL_LID =  BASE_URL + "rid=%sP&lid=%s&method=%s"
 
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
 		self.timedelta = 0
 		
 	def sync(self):
-		reqUrl = self.BASE_URL_RID % (self.rid, "sync")
+		reqUrl = self.BASE_URL_RID_SECURE % (self.rid, "sync")
 
 		req = xmlrpclib.dumps((), "misc.sync").replace("\n", "")
 		enc = crypt.encryptString(req)
@@ -46,7 +49,7 @@ class PandoraConnection(object):
 		self.sync()
 		
 		# now do real auth
-		reqUrl = self.BASE_URL_RID % (self.rid, "authenticateListener")
+		reqUrl = self.BASE_URL_RID_SECURE % (self.rid, "authenticateListener")
 		
 		try:
 			result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd, "html5tuner", "", "", "HTML5", True)
@@ -59,7 +62,7 @@ class PandoraConnection(object):
 		return True
 	
 	def getStations(self):
-		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getStations")
+		reqUrl = self.BASE_URL_LID_SECURE % (self.rid, self.lid, "getStations")
 		return self.doRequest(reqUrl, "station.getStations", self.authToken)
 
 	def getFragment(self, stationId=None, format="mp3"):
@@ -92,11 +95,13 @@ class PandoraConnection(object):
 			#print "Error:", fault.faultString
 			#print "Code:", fault.faultCode
 			
-			code = fault.faultString.split("|")[-2]
-			if code == "AUTH_INVALID_TOKEN":
-				raise AuthenticationError()
+			parts = fault.faultString.split("|")
+			if len(parts) > 2:
+				code = parts[-2]
+				if code == "AUTH_INVALID_TOKEN":
+					raise AuthenticationError()
 			else:
-				raise ValueError(code)
+				raise ValueError(fault.faultString)
 		
 		return parsed[0][0]
 	

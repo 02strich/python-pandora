@@ -18,9 +18,6 @@ class PandoraConnection(object):
 	BASE_URL_SECURE = "https://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
 	BASE_URL_RID_SECURE = BASE_URL_SECURE + "rid=%sP&method=%s"
 	BASE_URL_LID_SECURE = BASE_URL_SECURE + "rid=%sP&lid=%s&method=%s"
-	
-	BASE_URL	 = "http://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
-	BASE_URL_LID =  BASE_URL + "rid=%sP&lid=%s&method=%s"
 
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
@@ -66,7 +63,7 @@ class PandoraConnection(object):
 		return self.doRequest(reqUrl, "station.getStations", self.authToken)
 
 	def getFragment(self, stationId=None, format="mp3"):
-		reqUrl = self.BASE_URL_LID % (self.rid, self.lid, "getFragment")
+		reqUrl = self.BASE_URL_LID_SECURE % (self.rid, self.lid, "getFragment")
 		songlist = self.doRequest(reqUrl, "playlist.getFragment", self.authToken, stationId, "0", "", "", format, "0", "0")
 		
 		# last 48 chars of URL encrypted, padded w/ 8 * '\x08'
@@ -92,8 +89,8 @@ class PandoraConnection(object):
 		try:
 			parsed = xmlrpclib.loads(resp)
 		except xmlrpclib.Fault, fault:
-			#print "Error:", fault.faultString
-			#print "Code:", fault.faultCode
+			print "Error:", fault.faultString
+			print "Code:", fault.faultCode
 			
 			parts = fault.faultString.split("|")
 			if len(parts) > 2:

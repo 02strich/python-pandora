@@ -3,12 +3,12 @@ from setuptools import setup
 from pandora import DATA_FILES
 
 setup(name='python-pandora',
-	version='0.6-33',
+	version='0.7-33',
 	description='Library to access pandora.com. Based on the work from http://forum.xbmc.org/showthread.php?t=70471',
 	maintainer='Stefan Richter',
 	maintainer_email='stefan@02strich.de',
 	packages = ['pandora'],
-	data_files = [('pandora', ['pandora/'+file for file in DATA_FILES])],
+	package_data = {'pandora': ['*.h']},
 	classifiers=[
 		'License :: OSI Approved :: MIT License',
 		'Operating System :: OS Independent',

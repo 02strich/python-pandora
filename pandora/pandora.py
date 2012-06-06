@@ -11,11 +11,11 @@ class Pandora(object):
 		self.connection = PandoraConnection()
 	
 	def authenticate(self, username, password):
-		self.authenticated = self.connection.authListener(username, password)
+		self.authenticated = self.connection.authenticate(username, password)
 		return self.authenticated
 		
 	def getStationList(self):
-		return self.connection.getStations()
+		return self.connection.get_stations()
 	
 	def switchStation(self, stationId):
 		if type(stationId) is dict:
@@ -50,6 +50,14 @@ if __name__ == "__main__":
 	print "Password: "
 	password = raw_input()
 	
+	# read proxy config
+	print "Proxy: "
+	proxy = raw_input()
+	if proxy:
+		proxy_support = urllib2.ProxyHandler({"http" : proxy})
+		opener = urllib2.build_opener(proxy_support)
+		urllib2.install_opener(opener)
+	
 	# authenticate
 	print "Authenthicated: " + str(pandora.authenticate(username, password))
 	
@@ -58,8 +66,9 @@ if __name__ == "__main__":
 	for station in pandora.getStationList():
 		if station['isQuickMix']: 
 			quickmix = station
-			continue
-		print "\t" + station['stationName']
+			print "\t" + station['stationName'] + "*"
+		else:
+			print "\t" + station['stationName']
 	
 	# switch to quickmix station
 	pandora.switchStation(quickmix)
@@ -67,11 +76,11 @@ if __name__ == "__main__":
 	# get one song from quickmix
 	print "next song from quickmix:"
 	next =  pandora.getNextSong()
-	print next['artistSummary'] + ': ' + next['songTitle']
-	print next['audioURL']
+	print next['artistName'] + ': ' + next['songName']
+	print next['audioUrlMap']['highQuality']['audioUrl']
 	
 	# download it
-	#u = urllib2.urlopen(next['audioURL'])
+	#u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
 	#f = open('test.mp3', 'wb')
 	#f.write(u.read())
 	#f.close()

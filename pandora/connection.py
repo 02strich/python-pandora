@@ -1,4 +1,5 @@
-import xmlrpclib
+import json
+import urllib
 import urllib2
 import time
 
@@ -9,105 +10,106 @@ class AuthenticationError(Exception):
 	pass
 
 class PandoraConnection(object):
-	rid = ""
-	lid = ""
-	authInfo = {}
-	authToken = ""
-
-	PROTOCOL_VERSION = 33
-	BASE_URL_SECURE = "https://www.pandora.com/radio/xmlrpc/v%d?" % PROTOCOL_VERSION
-	BASE_URL_RID_SECURE = BASE_URL_SECURE + "rid=%sP&method=%s"
-	BASE_URL_LID_SECURE = BASE_URL_SECURE + "rid=%sP&lid=%s&method=%s"
-
+	partner_id = None
+	partner_auth_token = None
+	
+	user_id = None
+	user_auth_token = None
+	
+	time_offset = None
+	
+	PROTOCOL_VERSION = '5'
+	RPC_URL = "://tuner.pandora.com/services/json/?"
+	DEVICE_MODEL = 'android-generic'
+	PARTNER_USERNAME = 'android'
+	PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
+	
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
 		self.timedelta = 0
 		
-	def sync(self):
-		reqUrl = self.BASE_URL_RID_SECURE % (self.rid, "sync")
-
-		req = xmlrpclib.dumps((), "misc.sync").replace("\n", "")
-		enc = crypt.encryptString(req)
-		
-		u = urllib2.urlopen(reqUrl, enc)
-		resp = u.read()
-		u.close()
-		
+	def authenticate(self, user, pwd):
 		try:
-				parsed = xmlrpclib.loads(resp)
-				cryptedTimestamp = parsed[0][0]
-				decryptedTimestamp = crypt.decryptString(cryptedTimestamp)
-				self.timedelta = int(time.time()) - int(decryptedTimestamp[4:-2])
-		except xmlrpclib.Fault, fault:
-				raise ValueError(str(fault))
-
-	def authListener(self, user, pwd):
-		# sync to server time
-		self.sync()
-		
-		# now do real auth
-		reqUrl = self.BASE_URL_RID_SECURE % (self.rid, "authenticateListener")
-		
-		try:
-			result = self.doRequest(reqUrl, "listener.authenticateListener", user, pwd, "html5tuner", "", "", "HTML5", True)
+			# partner login
+			partner = self.do_request('auth.partnerLogin', True, False, deviceModel=self.DEVICE_MODEL, username=self.PARTNER_USERNAME, password=self.PARTNER_PASSWORD, version=self.PROTOCOL_VERSION)
+			self.partner_id = partner['partnerId']
+			self.partner_auth_token = partner['partnerAuthToken']
+			
+			# sync
+			pandora_time = int(crypt.pandora_decrypt(partner['syncTime'])[4:14])
+			self.time_offset = pandora_time - time.time()
+			
+			# user login
+			user = self.do_request('auth.userLogin', True, True, username=user, password=pwd, loginType="user")
+			self.user_id = user['userId']
+			self.user_auth_token = user['userAuthToken']
+			
+			return True
 		except:
+			self.partner_id = None
+			self.partner_auth_token = None
+			self.user_id = None
+			self.user_auth_token = None
+			self.time_offset = None
+			
 			return False
-		
-		self.authInfo	= result
-		self.authToken	= self.authInfo["authToken"]
-		self.lid	= self.authInfo["listenerId"]
-		return True
 	
-	def getStations(self):
-		reqUrl = self.BASE_URL_LID_SECURE % (self.rid, self.lid, "getStations")
-		return self.doRequest(reqUrl, "station.getStations", self.authToken)
-
-	def getFragment(self, stationId=None, format="mp3"):
-		reqUrl = self.BASE_URL_LID_SECURE % (self.rid, self.lid, "getFragment")
-		songlist = self.doRequest(reqUrl, "playlist.getFragment", self.authToken, stationId, "0", "", "", format, "0", "0")
-		
-		# last 48 chars of URL encrypted, padded w/ 8 * '\x08'
-		for i in range(len(songlist)):
-			url = songlist[i]["audioURL"]
-			url = url[:-48] + crypt.decryptString(url[-48:])[:-8]
-			songlist[i]["audioURL"] = url
-		
+	def get_stations(self):
+		return self.do_request('user.getStationList', False, True)['stations']
+	
+	def get_fragment(self, stationId=None, format="mp3"):
+		songlist = self.do_request('station.getPlaylist', True, True, stationToken=stationId, additionalAudioUrl='HTTP_64_AACPLUS_ADTS,HTTP_128_MP3,HTTP_192_MP3')['items']
+				
 		self.curStation = stationId
 		self.curFormat = format
 		
 		return songlist
 	
-	def doRequest(self, reqUrl, method, *args):
-		args = (int(time.time()) - self.timedelta, ) + args
-		req = xmlrpclib.dumps(args, method).replace("\n", "")
-		enc = crypt.encryptString(req)
+	def do_request(self, method, secure, crypted, **kwargs):
+		url_arg_strings = []
+		if self.partner_id:
+			url_arg_strings.append('partner_id=%s' % self.partner_id)
+		if self.user_id:
+			url_arg_strings.append('user_id=%s' % self.user_id)
+		if self.user_auth_token:
+			url_arg_strings.append('auth_token=%s'%urllib.quote_plus(self.user_auth_token))
+		elif self.partner_auth_token:
+			url_arg_strings.append('auth_token=%s' % urllib.quote_plus(self.partner_auth_token))
 		
-		u = urllib2.urlopen(reqUrl, enc)
-		resp = u.read()
-		u.close()
+		url_arg_strings.append('method=%s'%method)
+		url = ('https' if secure else 'http') + self.RPC_URL + '&'.join(url_arg_strings)
 		
-		try:
-			parsed = xmlrpclib.loads(resp)
-		except xmlrpclib.Fault, fault:
-			print "Error:", fault.faultString
-			print "Code:", fault.faultCode
-			
-			parts = fault.faultString.split("|")
-			if len(parts) > 2:
-				code = parts[-2]
-				if code == "AUTH_INVALID_TOKEN":
-					raise AuthenticationError()
-				else:
-					raise ValueError(code)
+		if self.time_offset:
+			kwargs['syncTime'] = int(time.time()+self.time_offset)
+		if self.user_auth_token:
+			kwargs['userAuthToken'] = self.user_auth_token
+		elif self.partner_auth_token:
+			kwargs['partnerAuthToken'] = self.partner_auth_token
+		data = json.dumps(kwargs)
+		
+		if crypted:
+			data = crypt.pandora_encrypt(data)
+
+		# execute request
+		req = urllib2.Request(url, data, {'User-agent': "02strich", 'Content-type': 'text/plain'})
+		response = urllib2.urlopen(req)
+		text = response.read()
+
+		# parse result
+		tree = json.loads(text)
+		if tree['stat'] == 'fail':
+			code = tree['code']
+			msg = tree['message']
+			if code == 1002:
+				raise AuthenticationError()
 			else:
-				raise ValueError(fault.faultString)
-		
-		return parsed[0][0]
-	
+				raise ValueError("%d: %s" % (code, msg))
+		elif 'result' in tree:
+			return tree['result']
+			
 
 if __name__ == "__main__":
 	pandora = PandoraConnection()
-	# pandora.sync()
 	
 	# read username
 	print "Username: "
@@ -118,25 +120,25 @@ if __name__ == "__main__":
 	password = raw_input()
 	
 	# authenticate
-	# authenticate
-	print "Authenthicated: " + str(pandora.authListener(username, password))
+	print "Authenthicated: " + str(pandora.authenticate(username, password))
 	
 	# output stations (without QuickMix)
 	print "users stations:"
 	for station in pandora.getStations():
 		if station['isQuickMix']: 
 			quickmix = station
-			continue
-		print "\t" + station['stationName']
+			print "\t" + station['stationName'] + "*"
+		else:
+			print "\t" + station['stationName']
 	
 	# get one song from quickmix
 	print "next song from quickmix:"
-	next =  pandora.getFragment(quickmix)[0]['stationId']
-	print next['artistSummary'] + ': ' + next['songTitle']
-	print next['audioURL']
+	next =  pandora.getFragment(quickmix)[0]
+	print next['artistName'] + ': ' + next['songName']
+	print next['audioUrlMap']['highQuality']['audioUrl']
 	
 	# download it
-	#u = urllib2.urlopen(next['audioURL'])
+	#u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
 	#f = open('test.mp3', 'wb')
 	#f.write(u.read())
 	#f.close()

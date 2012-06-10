@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from setuptools import setup
-from pandora import DATA_FILES
 
 setup(name='python-pandora',
 	version='0.8-5',
@@ -8,7 +7,6 @@ setup(name='python-pandora',
 	maintainer='Stefan Richter',
 	maintainer_email='stefan@02strich.de',
 	packages = ['pandora'],
-	package_data = {'pandora': ['*.h']},
 	classifiers=[
 		'License :: OSI Approved :: MIT License',
 		'Operating System :: OS Independent',

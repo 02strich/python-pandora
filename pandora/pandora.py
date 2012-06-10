@@ -3,7 +3,7 @@ import urllib2
 from connection import PandoraConnection
 
 class Pandora(object):
-	stationId = None
+	station_id = None
 	authenticated = False
 	backlog = []
 	
@@ -14,26 +14,26 @@ class Pandora(object):
 		self.authenticated = self.connection.authenticate(username, password)
 		return self.authenticated
 		
-	def getStationList(self):
+	def get_station_list(self):
 		return self.connection.get_stations()
 	
-	def switchStation(self, stationId):
-		if type(stationId) is dict:
-			stationId = stationId['stationId']
+	def switch_station(self, station_id):
+		if type(station_id) is dict:
+			station_id = station_id['stationId']
 		
 		if not self.authenticated: raise ValueError("User not yet authenticated")
 		
 		self.backlog = []
-		self.stationId = stationId
-		self.backlog = self.connection.getFragment(stationId) + self.backlog
+		self.station_id = station_id
+		self.backlog = self.connection.get_fragment(station_id) + self.backlog
 	
-	def getNextSong(self):
+	def get_next_song(self):
 		if not self.authenticated: raise ValueError("User not yet authenticated")
-		if not self.stationId: raise ValueError("No station selected")
+		if not self.station_id: raise ValueError("No station selected")
 		
 		# get more songs
 		if len(self.backlog) < 2:
-			self.backlog = self.connection.getFragment(self.stationId) + self.backlog
+			self.backlog = self.connection.get_fragment(self.station_id) + self.backlog
 		
 		# get next song
 		return self.backlog.pop()

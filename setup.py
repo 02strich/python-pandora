@@ -3,8 +3,8 @@ from setuptools import setup
 from pandora import DATA_FILES
 
 setup(name='python-pandora',
-	version='0.7-33',
-	description='Library to access pandora.com. Based on the work from http://forum.xbmc.org/showthread.php?t=70471',
+	version='0.8-5',
+	description='Library to access pandora.com. Based on the work from http://forum.xbmc.org/showthread.php?t=70471 and from Pithos',
 	maintainer='Stefan Richter',
 	maintainer_email='stefan@02strich.de',
 	packages = ['pandora'],

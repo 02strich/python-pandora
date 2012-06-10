@@ -23,6 +23,8 @@ class PandoraConnection(object):
 	DEVICE_MODEL = 'android-generic'
 	PARTNER_USERNAME = 'android'
 	PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
+	AUDIO_FORMAT_MAP = {'aac': 'HTTP_64_AACPLUS_ADTS',
+						'mp3': 'HTTP_128_MP3'}
 	
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
@@ -57,8 +59,8 @@ class PandoraConnection(object):
 	def get_stations(self):
 		return self.do_request('user.getStationList', False, True)['stations']
 	
-	def get_fragment(self, stationId=None, format="mp3"):
-		songlist = self.do_request('station.getPlaylist', True, True, stationToken=stationId, additionalAudioUrl='HTTP_64_AACPLUS_ADTS,HTTP_128_MP3,HTTP_192_MP3')['items']
+	def get_fragment(self, stationId=None, additional_format="mp3"):
+		songlist = self.do_request('station.getPlaylist', True, True, stationToken=stationId, additionalAudioUrl=self.AUDIO_FORMAT_MAP[additional_format])['items']
 				
 		self.curStation = stationId
 		self.curFormat = format

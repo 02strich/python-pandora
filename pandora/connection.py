@@ -25,7 +25,8 @@ class PandoraConnection(object):
 	PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
 	AUDIO_FORMAT_MAP = {'aac': 'HTTP_64_AACPLUS_ADTS',
 						'mp3': 'HTTP_128_MP3'}
-	
+	stations = []
+
 	def __init__(self):
 		self.rid = "%07i" % (time.time() % 1e7)
 		self.timedelta = 0
@@ -42,10 +43,10 @@ class PandoraConnection(object):
 			self.time_offset = pandora_time - time.time()
 			
 			# user login
-			user = self.do_request('auth.userLogin', True, True, username=user, password=pwd, loginType="user")
+			user = self.do_request('auth.userLogin', True, True, username=user, password=pwd, loginType="user", returnStationList=True)
 			self.user_id = user['userId']
 			self.user_auth_token = user['userAuthToken']
-			
+			self.stations = user['stationListResult']['stations']
 			return True
 		except:
 			self.partner_id = None
@@ -57,8 +58,11 @@ class PandoraConnection(object):
 			return False
 	
 	def get_stations(self):
-		return self.do_request('user.getStationList', False, True)['stations']
-	
+		try:
+			return self.do_request('user.getStationList', False, True)['stations']
+		except ValueError:
+			return self.stations
+
 	def get_fragment(self, stationId=None, additional_format="mp3"):
 		songlist = self.do_request('station.getPlaylist', True, True, stationToken=stationId, additionalAudioUrl=self.AUDIO_FORMAT_MAP[additional_format])['items']
 				

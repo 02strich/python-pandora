@@ -115,22 +115,20 @@ class PandoraConnection(object):
 			
 
 if __name__ == "__main__":
-	pandora = PandoraConnection()
+	conn = PandoraConnection()
 	
 	# read username
-	print "Username: "
-	username = raw_input()
+	username = raw_input("Username: ")
 	
 	# read password
-	print "Password: "
-	password = raw_input()
+	password = raw_input("Password: ")
 	
 	# authenticate
-	print "Authenthicated: " + str(pandora.authenticate(username, password))
+	print "Authenticated: " + str(conn.authenticate(username, password))
 	
 	# output stations (without QuickMix)
 	print "users stations:"
-	for station in pandora.getStations():
+	for station in conn.getStations():
 		if station['isQuickMix']: 
 			quickmix = station
 			print "\t" + station['stationName'] + "*"
@@ -139,7 +137,7 @@ if __name__ == "__main__":
 	
 	# get one song from quickmix
 	print "next song from quickmix:"
-	next =  pandora.getFragment(quickmix)[0]
+	next =  conn.getFragment(quickmix)[0]
 	print next['artistName'] + ': ' + next['songName']
 	print next['audioUrlMap']['highQuality']['audioUrl']
 	
@@ -149,3 +147,4 @@ if __name__ == "__main__":
 	#f.write(u.read())
 	#f.close()
 	#u.close()
+

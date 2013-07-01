@@ -59,19 +59,43 @@ class PandoraConnection(object):
 
             return False
 
+    def search(self, text):
+        return self.do_request("music.search", False, True, searchText=text)
+
     def get_stations(self):
         try:
             return self.do_request('user.getStationList', False, True)['stations']
         except ValueError:
             return self.stations
 
-    def get_fragment(self, stationId=None, additional_format="mp3"):
-        songlist = self.do_request('station.getPlaylist', True, True, stationToken=stationId, additionalAudioUrl=self.AUDIO_FORMAT_MAP[additional_format])['items']
+    def get_genre_stations(self):
+        return self.do_request("station.getGenreStations", False, True)
 
-        self.curStation = stationId
+    def get_fragment(self, station_token=None, additional_format="mp3"):
+        songlist = self.do_request('station.getPlaylist', True, True, stationToken=station_token, additionalAudioUrl=self.AUDIO_FORMAT_MAP[additional_format])['items']
+
+        self.curStation = station_token
         self.curFormat = format
 
         return songlist
+
+    def get_station(self, station_token):
+        return self.do_request('station.getStation', False, True, stationToken=station_token, includeExtendedAttributes=True)
+
+    def delete_station(self, station_token):
+        self.do_request('station.deleteStation', False, True, stationToken=station_token)
+
+    def add_seed(self, station_token, music_token):
+        return self.do_request('station.addMusic', False, True, stationToken=station_token, musicToken=music_token)
+
+    def delete_seed(self, station_token, seed_token):
+        self.do_request("station.deleteMusic", False, True, seedId=seed_token)
+
+    def add_feedback(self, station_token, track_token, is_positive_feedback=True):
+        return self.do_request("station.addFeedback", False, True, stationToken=station_token, trackToken=track_token, isPositive=is_positive_feedback)
+
+    def delete_feedback(self, station_token, feedback_token):
+        self.do_request("station.deleteFeedback", False, True, feedbackId=feedback_token)
 
     def do_request(self, method, secure, crypted, **kwargs):
         url_arg_strings = []

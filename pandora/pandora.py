@@ -24,8 +24,40 @@ class Pandora(object):
         return self.is_authenticated
 
     @authenticated
+    def search(self, text):
+        return self.connection.search(text)
+
+    @authenticated
     def get_station_list(self):
         return self.connection.get_stations()
+
+    @authenticated
+    def get_genre_stations(self):
+        return self.connection.get_genre_stations()
+
+    @authenticated
+    def get_station(self, station_token):
+        return self.connection.get_station(station_token)
+
+    @authenticated
+    def delete_station(self, station_token):
+        self.connection.delete_station(station_token)
+
+    @authenticated
+    def add_seed(self, station_token, music_token):
+        return self.connection.add_seed(station_token, music_token)
+
+    @authenticated
+    def delete_seed(self, station_token, seed_token):
+        self.connection.delete_seed(station_token, seed_token)
+
+    @authenticated
+    def add_feedback(self, station_token, track_token, is_positive_feedback=True):
+        return self.connection.add_feedback(station_token, track_token, is_positive_feedback)
+
+    @authenticated
+    def delete_feedback(self, station_token, feedback_token):
+        self.connection.delete_feedback(station_token, feedback_token)
 
     @authenticated
     def switch_station(self, station_id):

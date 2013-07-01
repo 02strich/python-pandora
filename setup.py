@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name='python-pandora',
-      version='0.8-5',
+      version='0.9',
       description='Library to access pandora.com. Based on the work from http://forum.xbmc.org/showthread.php?t=70471 and from Pithos',
       maintainer='Stefan Richter',
       maintainer_email='stefan@02strich.de',

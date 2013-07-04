@@ -12,11 +12,10 @@ class AuthenticationError(Exception):
 
 
 class PandoraConnection(object):
+    """Connection to the Pandora API without a specific user context"""
+
     partner_id = None
     partner_auth_token = None
-
-    user_id = None
-    user_auth_token = None
 
     time_offset = None
 
@@ -25,86 +24,71 @@ class PandoraConnection(object):
     DEVICE_MODEL = 'android-generic'
     PARTNER_USERNAME = 'android'
     PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
-    AUDIO_FORMAT_MAP = {'aac': 'HTTP_64_AACPLUS_ADTS',
-                        'mp3': 'HTTP_128_MP3'}
-    stations = []
 
     def __init__(self):
         self.rid = "%07i" % (time.time() % 1e7)
         self.timedelta = 0
 
-    def authenticate(self, user, pwd):
         try:
             # partner login
-            partner = self.do_request('auth.partnerLogin', True, False, deviceModel=self.DEVICE_MODEL, username=self.PARTNER_USERNAME, password=self.PARTNER_PASSWORD, version=self.PROTOCOL_VERSION)
+            partner = self.do_request('auth.partnerLogin', True, False, {}, deviceModel=self.DEVICE_MODEL, username=self.PARTNER_USERNAME, password=self.PARTNER_PASSWORD, version=self.PROTOCOL_VERSION)
             self.partner_id = partner['partnerId']
             self.partner_auth_token = partner['partnerAuthToken']
 
             # sync
             pandora_time = int(crypt.pandora_decrypt(partner['syncTime'])[4:14])
             self.time_offset = pandora_time - time.time()
-
-            # user login
-            user = self.do_request('auth.userLogin', True, True, username=user, password=pwd, loginType="user", returnStationList=True)
-            self.user_id = user['userId']
-            self.user_auth_token = user['userAuthToken']
-            self.stations = user['stationListResult']['stations']
-            return True
         except:
             self.partner_id = None
             self.partner_auth_token = None
-            self.user_id = None
-            self.user_auth_token = None
             self.time_offset = None
 
-            return False
+            raise Exception("Establishing connection to Pandora failed")
 
-    def search(self, text):
-        return self.do_request("music.search", False, True, searchText=text)
-
-    def get_stations(self):
+    def authenticate_user(self, user, pwd):
         try:
-            return self.do_request('user.getStationList', False, True)['stations']
-        except ValueError:
-            return self.stations
+            return self.do_request('auth.userLogin', True, True, {}, username=user, password=pwd, loginType="user", returnStationList=True)
+        except:
+            return None
 
-    def get_genre_stations(self):
-        return self.do_request("station.getGenreStations", False, True)
+    def search(self, user, text):
+        return self.do_request("music.search", False, True, user, searchText=text)
 
-    def get_fragment(self, station_token=None, additional_format="mp3"):
-        songlist = self.do_request('station.getPlaylist', True, True, stationToken=station_token, additionalAudioUrl=self.AUDIO_FORMAT_MAP[additional_format])['items']
+    def get_stations(self, user):
+        return self.do_request('user.getStationList', False, True, user)['stations']
 
-        self.curStation = station_token
-        self.curFormat = format
+    def get_genre_stations(self, user):
+        return self.do_request("station.getGenreStations", False, True, user)
 
-        return songlist
+    def get_fragment(self, user, station):
+        return self.do_request('station.getPlaylist', True, True, user, stationToken=station['stationToken'])['items']
 
-    def get_station(self, station_token):
-        return self.do_request('station.getStation', False, True, stationToken=station_token, includeExtendedAttributes=True)
+    def get_station(self, user, station):
+        return self.do_request('station.getStation', False, True, user, stationToken=station['stationToken'], includeExtendedAttributes=True)
 
-    def delete_station(self, station_token):
-        self.do_request('station.deleteStation', False, True, stationToken=station_token)
+    def delete_station(self, user, station):
+        self.do_request('station.deleteStation', False, True, user, stationToken=station['stationToken'])
 
-    def add_seed(self, station_token, music_token):
-        return self.do_request('station.addMusic', False, True, stationToken=station_token, musicToken=music_token)
+    def add_seed(self, user, station, song_or_artist):
+        return self.do_request('station.addMusic', False, True, user, stationToken=station['stationToken'], musicToken=song_or_artist['musicToken'])
 
-    def delete_seed(self, station_token, seed_token):
-        self.do_request("station.deleteMusic", False, True, seedId=seed_token)
+    def delete_seed(self, user, station, song_or_artist):
+        self.do_request("station.deleteMusic", False, True, user, seedId=song_or_artist['seedId'])
 
-    def add_feedback(self, station_token, track_token, is_positive_feedback=True):
-        return self.do_request("station.addFeedback", False, True, stationToken=station_token, trackToken=track_token, isPositive=is_positive_feedback)
+    def add_feedback(self, user, station, track, is_positive_feedback=True):
+        return self.do_request("station.addFeedback", False, True, user, stationToken=station['stationToken'], trackToken=track['trackToken'], isPositive=is_positive_feedback)
 
-    def delete_feedback(self, station_token, feedback_token):
-        self.do_request("station.deleteFeedback", False, True, feedbackId=feedback_token)
+    def delete_feedback(self, user, station, feedback):
+        self.do_request("station.deleteFeedback", False, True, user, feedbackId=feedback['feedbackId'])
 
-    def do_request(self, method, secure, crypted, **kwargs):
+    def do_request(self, method, secure, crypted, user, **kwargs):
         url_arg_strings = []
         if self.partner_id:
             url_arg_strings.append('partner_id=%s' % self.partner_id)
-        if self.user_id:
-            url_arg_strings.append('user_id=%s' % self.user_id)
-        if self.user_auth_token:
-            url_arg_strings.append('auth_token=%s' % urllib.quote_plus(self.user_auth_token))
+        if 'userId' in user:
+            url_arg_strings.append('user_id=%s' % user['userId'])
+        if 'userAuthToken' in user:
+            url_arg_strings.append('auth_token=%s' % urllib.quote_plus(user['userAuthToken']))
         elif self.partner_auth_token:
             url_arg_strings.append('auth_token=%s' % urllib.quote_plus(self.partner_auth_token))
 
@@ -113,8 +97,8 @@ class PandoraConnection(object):
 
         if self.time_offset:
             kwargs['syncTime'] = int(time.time() + self.time_offset)
-        if self.user_auth_token:
-            kwargs['userAuthToken'] = self.user_auth_token
+        if 'userAuthToken' in user:
+            kwargs['userAuthToken'] = user['userAuthToken']
         elif self.partner_auth_token:
             kwargs['partnerAuthToken'] = self.partner_auth_token
         data = json.dumps(kwargs)
@@ -141,35 +125,40 @@ class PandoraConnection(object):
 
 
 if __name__ == "__main__":
+    import getpass
+
     conn = PandoraConnection()
 
     # read username
     username = raw_input("Username: ")
 
     # read password
-    password = raw_input("Password: ")
+    password = getpass.getpass("Password: ")
 
     # authenticate
-    print "Authenticated: " + str(conn.authenticate(username, password))
+    user = conn.authenticate_user(username, password)
+    print "Authenticated: " + str(user)
 
-    # output stations (without QuickMix)
-    print "users stations:"
-    for station in conn.getStations():
-        if station['isQuickMix']:
-            quickmix = station
-            print "\t" + station['stationName'] + "*"
-        else:
-            print "\t" + station['stationName']
+    if not user is None:
+        # output stations (without QuickMix)
+        print "users stations:"
+        for station in conn.get_stations(user):
+            if station['isQuickMix']:
+                quickmix = station
+                print "\t" + station['stationName'] + "*"
+            else:
+                print "\t" + station['stationName']
 
-    # get one song from quickmix
-    print "next song from quickmix:"
-    next = conn.getFragment(quickmix)[0]
-    print next['artistName'] + ': ' + next['songName']
-    print next['audioUrlMap']['highQuality']['audioUrl']
+        # get one song from quickmix
+        print "next song from quickmix:"
+        next = conn.get_fragment(user, quickmix)[0]
+        print next['artistName'] + ': ' + next['songName']
+        print next['audioUrlMap']['highQuality']['audioUrl']
 
-    # download it
-    #u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
-    #f = open('test.mp3', 'wb')
-    #f.write(u.read())
-    #f.close()
-    #u.close()
+        # download it
+        #u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
+        #f = open('test.mp3', 'wb')
+        #f.write(u.read())
+        #f.close()
+        #u.close()
+

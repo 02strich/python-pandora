@@ -20,10 +20,10 @@ class PandoraConnection(object):
     time_offset = None
 
     PROTOCOL_VERSION = '5'
-    RPC_URL = "://tuner.pandora.com/services/json/?"
-    DEVICE_MODEL = 'android-generic'
-    PARTNER_USERNAME = 'android'
-    PARTNER_PASSWORD = 'AC7IBG09A3DTSYM4R41UJWL07VLN8JI7'
+    RPC_URL = "://internal-tuner.pandora.com/services/json/?"
+    DEVICE_MODEL = 'D01'
+    PARTNER_USERNAME = 'pandora one'
+    PARTNER_PASSWORD = 'TVCKIBGS9AO9TSYLNNFUML0743LH82D'
 
     def __init__(self):
         self.rid = "%07i" % (time.time() % 1e7)

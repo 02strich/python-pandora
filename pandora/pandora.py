@@ -17,8 +17,8 @@ class Pandora(object):
     backlog = []
     stations = []
 
-    def __init__(self, connection=PandoraConnection()):
-        self.connection = connection
+    def __init__(self, connection_class=PandoraConnection):
+        self.connection = connection_class()
 
     def authenticate(self, username, password):
         self.user = self.connection.authenticate_user(username, password)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # read proxy config
     proxy = raw_input("Proxy: ")
     if proxy:
-        proxy_support = urllib2.ProxyHandler({"http": proxy})
+        proxy_support = urllib2.ProxyHandler({"http": proxy, "https": proxy})
         opener = urllib2.build_opener(proxy_support)
         urllib2.install_opener(opener)
 

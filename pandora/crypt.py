@@ -87,9 +87,40 @@ class Blowfish:
     # For the __round_func
     modulus = long(2) ** 32
 
-    def __init__(self, p_boxes, s_boxes):
+    def __init__(self, p_boxes, s_boxes, key):
         self.p_boxes = p_boxes
         self.s_boxes = s_boxes
+        
+        if not key or len (key) < 8 or len (key) > 56:
+            raise RuntimeError("Attempted to initialize Blowfish cipher with key of invalid length: %s" % len (key))
+
+        # Cycle through the p-boxes and round-robin XOR the
+        # key with the p-boxes
+        key_len = len(key)
+        index = 0
+        for i in range(len(self.p_boxes)):
+            val = (ord(key[index % key_len]) << 24) + \
+                  (ord(key[(index + 1) % key_len]) << 16) + \
+                  (ord(key[(index + 2) % key_len]) << 8) + \
+                   ord(key[(index + 3) % key_len])
+            self.p_boxes[i] = self.p_boxes[i] ^ val
+            index = index + 4
+
+        # For the chaining process
+        l, r = 0, 0
+
+        # Begin chain replacing the p-boxes
+        for i in range (0, len (self.p_boxes), 2):
+            l, r = self.cipher (l, r, self.ENCRYPT)
+            self.p_boxes[i] = l
+            self.p_boxes[i + 1] = r
+
+        # Chain replace the s-boxes
+        for i in range (len (self.s_boxes)):
+            for j in range (0, len (self.s_boxes[i]), 2):
+                l, r = self.cipher (l, r, self.ENCRYPT)
+                self.s_boxes[i][j] = l
+                self.s_boxes[i][j + 1] = r
 
     def cipher(self, xl, xr, direction):
         if direction == self.ENCRYPT:
@@ -165,9 +196,10 @@ class Blowfish:
         return 56 * 8
 
 # helper functions
+import copy
 import keys
-blowfish_encode = Blowfish(keys.out_key_p, keys.out_key_s)
-blowfish_decode = Blowfish(keys.in_key_p, keys.in_key_s)
+blowfish_encode = Blowfish(copy.deepcopy(keys.key_p), copy.deepcopy(keys.key_s), "2%3WCL*JU$MP]4")
+blowfish_decode = Blowfish(copy.deepcopy(keys.key_p), copy.deepcopy(keys.key_s), "U#IO$RZPAB%VX2")
 
 
 def pad(s, l):

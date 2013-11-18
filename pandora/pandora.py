@@ -84,7 +84,6 @@ class Pandora(object):
 
 if __name__ == "__main__":
     import getpass
-    pandora = Pandora()
 
     # read username
     username = raw_input("Username: ")
@@ -98,6 +97,8 @@ if __name__ == "__main__":
         proxy_support = urllib2.ProxyHandler({"http": proxy, "https": proxy})
         opener = urllib2.build_opener(proxy_support)
         urllib2.install_opener(opener)
+
+	pandora = Pandora()
 
     # authenticate
     print "Authenthicated: " + str(pandora.authenticate(username, password))

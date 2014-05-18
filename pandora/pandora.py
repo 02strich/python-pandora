@@ -32,7 +32,7 @@ class Pandora(object):
 
     @authenticated
     def update_station_list(self):
-        self.stations = self.connection.get_stations(self.user)['stations']
+        self.stations = self.connection.get_stations(self.user)
 
     @authenticated
     def get_genre_stations(self):

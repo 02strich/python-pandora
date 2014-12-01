@@ -1,6 +1,7 @@
 import json
 import urllib
 import urllib2
+import sys
 import time
 
 import crypt
@@ -31,19 +32,23 @@ class PandoraConnection(object):
 
         try:
             # partner login
-            partner = self.do_request('auth.partnerLogin', True, False, {}, deviceModel=self.DEVICE_MODEL, username=self.PARTNER_USERNAME, password=self.PARTNER_PASSWORD, version=self.PROTOCOL_VERSION)
+            partner = self.do_request('auth.partnerLogin', True, False, {},
+                                      deviceModel=self.DEVICE_MODEL,
+                                      username=self.PARTNER_USERNAME,
+                                      password=self.PARTNER_PASSWORD,
+                                      version=self.PROTOCOL_VERSION)
             self.partner_id = partner['partnerId']
             self.partner_auth_token = partner['partnerAuthToken']
 
             # sync
             pandora_time = int(crypt.pandora_decrypt(partner['syncTime'])[4:14])
             self.time_offset = pandora_time - time.time()
-        except:
+        except Exception as e:
             self.partner_id = None
             self.partner_auth_token = None
             self.time_offset = None
 
-            raise Exception("Establishing connection to Pandora failed")
+            raise Exception("Establishing connection to Pandora failed: %s" % str(e)), None, sys.exc_info()[2]
 
     def authenticate_user(self, user, pwd):
         try:
@@ -76,7 +81,10 @@ class PandoraConnection(object):
         self.do_request("station.deleteMusic", False, True, user, seedId=song_or_artist['seedId'])
 
     def add_feedback(self, user, station, track, is_positive_feedback=True):
-        return self.do_request("station.addFeedback", False, True, user, stationToken=station['stationToken'], trackToken=track['trackToken'], isPositive=is_positive_feedback)
+        return self.do_request("station.addFeedback", False, True, user,
+                               stationToken=station['stationToken'],
+                               trackToken=track['trackToken'],
+                               isPositive=is_positive_feedback)
 
     def delete_feedback(self, user, station, feedback):
         self.do_request("station.deleteFeedback", False, True, user, feedbackId=feedback['feedbackId'])
@@ -139,7 +147,7 @@ if __name__ == "__main__":
     user = conn.authenticate_user(username, password)
     print "Authenticated: " + str(user)
 
-    if not user is None:
+    if user is not None:
         # output stations (without QuickMix)
         print "users stations:"
         for station in conn.get_stations(user):
@@ -156,9 +164,8 @@ if __name__ == "__main__":
         print next['audioUrlMap']['highQuality']['audioUrl']
 
         # download it
-        #u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
-        #f = open('test.mp3', 'wb')
-        #f.write(u.read())
-        #f.close()
-        #u.close()
-
+        # u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
+        # f = open('test.mp3', 'wb')
+        # f.write(u.read())
+        # f.close()
+        # u.close()

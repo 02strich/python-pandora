@@ -90,7 +90,7 @@ class Blowfish:
     def __init__(self, p_boxes, s_boxes, key):
         self.p_boxes = p_boxes
         self.s_boxes = s_boxes
-        
+
         if not key or len (key) < 8 or len (key) > 56:
             raise RuntimeError("Attempted to initialize Blowfish cipher with key of invalid length: %s" % len (key))
 
@@ -197,9 +197,9 @@ class Blowfish:
 
 # helper functions
 import copy
-import keys
-blowfish_encode = Blowfish(copy.deepcopy(keys.key_p), copy.deepcopy(keys.key_s), "2%3WCL*JU$MP]4")
-blowfish_decode = Blowfish(copy.deepcopy(keys.key_p), copy.deepcopy(keys.key_s), "U#IO$RZPAB%VX2")
+from .keys import key_p, key_s
+blowfish_encode = Blowfish(copy.deepcopy(key_p), copy.deepcopy(key_s), "2%3WCL*JU$MP]4")
+blowfish_decode = Blowfish(copy.deepcopy(key_p), copy.deepcopy(key_s), "U#IO$RZPAB%VX2")
 
 
 def pad(s, l):

@@ -1,6 +1,6 @@
 import urllib2
 
-from connection import PandoraConnection
+from .connection import PandoraConnection
 
 
 def authenticated(f):
@@ -80,50 +80,3 @@ class Pandora(object):
 
         # get next song
         return self.backlog.pop()
-
-
-if __name__ == "__main__":
-    import getpass
-
-    # read username
-    username = raw_input("Username: ")
-
-    # read password
-    password = getpass.getpass()
-
-    # read proxy config
-    proxy = raw_input("Proxy: ")
-    if proxy:
-        proxy_support = urllib2.ProxyHandler({"http": proxy, "https": proxy})
-        opener = urllib2.build_opener(proxy_support)
-        urllib2.install_opener(opener)
-
-	pandora = Pandora()
-
-    # authenticate
-    print "Authenthicated: " + str(pandora.authenticate(username, password))
-
-    # output stations (without QuickMix)
-    print "users stations:"
-    for station in pandora.stations:
-        if station['isQuickMix']:
-            quickmix = station
-            print "\t" + station['stationName'] + "*"
-        else:
-            print "\t" + station['stationName']
-
-    # switch to quickmix station
-    pandora.switch_station(quickmix)
-
-    # get one song from quickmix
-    print "next song from quickmix:"
-    next = pandora.get_next_song()
-    print next['artistName'] + ': ' + next['songName']
-    print next['audioUrlMap']['highQuality']['audioUrl']
-
-    # download it
-    #u = urllib2.urlopen(next['audioUrlMap']['highQuality']['audioUrl'])
-    #f = open('test.mp3', 'wb')
-    #f.write(u.read())
-    #f.close()
-    #u.close()

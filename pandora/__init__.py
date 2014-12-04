@@ -1,1 +1,1 @@
-from pandora import Pandora
+from .pandora import Pandora
